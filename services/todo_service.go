@@ -1,15 +1,14 @@
 package services
 
 import (
-	"errors"
 	"strings"
 
 	"gin-todo/models"
 	"gin-todo/repositories"
-)
 
-var ErrTodoNotFound = errors.New("Todo not found")
-var ErrDuplicateTitle = errors.New("Todo title already exists")
+	// Goには標準パッケージの errors があるから
+	appErr "gin-todo/errors"
+)
 
 func GetTodos() []models.Todo {
 	return repositories.GetAll()
@@ -21,7 +20,7 @@ func CreateTodo(todo models.Todo) (models.Todo, error) {
 	// タイトル重複チェック。大文字小文字を無視してタイトルが同じか比較する。
 	for _, v := range todos {
 		if strings.EqualFold(v.Title, todo.Title) {
-			return models.Todo{}, ErrDuplicateTitle
+			return models.Todo{}, appErr.ErrDuplicateTitle
 		}
 	}
 
@@ -39,7 +38,7 @@ func GetTodoByID(id int) (models.Todo, error) {
 		}
 	}
 
-	return models.Todo{}, ErrTodoNotFound
+	return models.Todo{}, appErr.ErrTodoNotFound
 }
 
 func UpdateTodo(id int, updatedTodo models.Todo) (models.Todo, error) {
@@ -55,7 +54,7 @@ func UpdateTodo(id int, updatedTodo models.Todo) (models.Todo, error) {
 				if t.ID != id &&
 					strings.EqualFold(t.Title, updatedTodo.Title) {
 
-					return models.Todo{}, ErrDuplicateTitle
+					return models.Todo{}, appErr.ErrDuplicateTitle
 				}
 			}
 
@@ -66,7 +65,7 @@ func UpdateTodo(id int, updatedTodo models.Todo) (models.Todo, error) {
 		}
 	}
 
-	return models.Todo{}, ErrTodoNotFound
+	return models.Todo{}, appErr.ErrTodoNotFound
 }
 
 func DeleteTodo(id int) error {
@@ -79,5 +78,5 @@ func DeleteTodo(id int) error {
 		}
 	}
 
-	return ErrTodoNotFound
+	return appErr.ErrTodoNotFound
 }

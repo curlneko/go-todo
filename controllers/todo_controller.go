@@ -8,6 +8,7 @@ import (
 
 	"gin-todo/models"
 	"gin-todo/services"
+	"gin-todo/utils"
 )
 
 func GetTodos(c *gin.Context) {
@@ -20,18 +21,14 @@ func CreateTodo(c *gin.Context) {
 
 	// JSONを構造体に変換。binding タグをチェック。
 	if err := c.ShouldBindJSON(&newTodo); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		utils.HandleError(c, err)
 		return
 	}
 
 	todo, err := services.CreateTodo(newTodo)
 
 	if err != nil {
-		c.JSON(http.StatusConflict, gin.H{
-			"error": err.Error(),
-		})
+		utils.HandleError(c, err)
 		return
 	}
 
@@ -42,18 +39,14 @@ func GetTodoByID(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid id",
-		})
+		utils.HandleError(c, err)
 		return
 	}
 
 	todo, err := services.GetTodoByID(id)
 
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": err.Error(),
-		})
+		utils.HandleError(c, err)
 		return
 	}
 
@@ -64,34 +57,21 @@ func UpdateTodo(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid id",
-		})
+		utils.HandleError(c, err)
 		return
 	}
 
 	var updatedTodo models.Todo
 
 	if err := c.ShouldBindJSON(&updatedTodo); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		utils.HandleError(c, err)
 		return
 	}
 
 	todo, err := services.UpdateTodo(id, updatedTodo)
 
 	if err != nil {
-		if err == services.ErrDuplicateTitle {
-			c.JSON(http.StatusConflict, gin.H{
-				"error": err.Error(),
-			})
-			return
-		}
-
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": err.Error(),
-		})
+		utils.HandleError(c, err)
 		return
 	}
 
@@ -102,18 +82,14 @@ func DeleteTodo(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid id",
-		})
+		utils.HandleError(c, err)
 		return
 	}
 
 	err = services.DeleteTodo(id)
 
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": err.Error(),
-		})
+		utils.HandleError(c, err)
 		return
 	}
 

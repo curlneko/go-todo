@@ -4,6 +4,7 @@ import (
 	"gin-todo/models"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,11 +20,23 @@ func GetTodos(c *gin.Context) {
 func CreateTodo(c *gin.Context) {
 	var newTodo models.Todo
 
+	// JSONを構造体に変換。binding タグをチェック。
 	if err := c.ShouldBindJSON(&newTodo); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
 		})
 		return
+	}
+
+	// タイトル重複チェック。大文字小文字を無視してタイトルが同じか比較する。
+	for _, v := range todos {
+		if strings.EqualFold(v.Title, newTodo.Title) {
+			// 409 Conflict
+			c.JSON(http.StatusConflict, gin.H{
+				"error": "Todo title already exists",
+			})
+			return
+		}
 	}
 
 	newTodo.ID = len(todos) + 1

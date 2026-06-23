@@ -1,19 +1,17 @@
 package controllers
 
 import (
-	"gin-todo/models"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/gin-gonic/gin"
+
+	"gin-todo/models"
+	"gin-todo/services"
 )
 
-var todos = []models.Todo{
-	{ID: 1, Title: "Studying Go.", Completed: false},
-}
-
 func GetTodos(c *gin.Context) {
+	todos := services.GetTodos()
 	c.JSON(http.StatusOK, todos)
 }
 
@@ -28,40 +26,49 @@ func CreateTodo(c *gin.Context) {
 		return
 	}
 
-	// タイトル重複チェック。大文字小文字を無視してタイトルが同じか比較する。
-	for _, v := range todos {
-		if strings.EqualFold(v.Title, newTodo.Title) {
-			// 409 Conflict
-			c.JSON(http.StatusConflict, gin.H{
-				"error": "Todo title already exists",
-			})
-			return
-		}
+	todo, err := services.CreateTodo(newTodo)
+
+	if err != nil {
+		c.JSON(http.StatusConflict, gin.H{
+			"error": err.Error(),
+		})
+		return
 	}
 
-	newTodo.ID = len(todos) + 1
-	todos = append(todos, newTodo)
-
-	c.JSON(http.StatusCreated, newTodo)
+	c.JSON(http.StatusCreated, todo)
 }
 
 func GetTodoByID(c *gin.Context) {
-	id := c.Param("id")
+	id, err := strconv.Atoi(c.Param("id"))
 
-	for _, v := range todos {
-		if strconv.Itoa(v.ID) == id {
-			c.JSON(http.StatusOK, v)
-			return
-		}
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid id",
+		})
+		return
 	}
 
-	c.JSON(http.StatusNotFound, gin.H{
-		"error": "Todo not found",
-	})
+	todo, err := services.GetTodoByID(id)
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, todo)
 }
 
 func UpdateTodo(c *gin.Context) {
-	id := c.Param("id")
+	id, err := strconv.Atoi(c.Param("id"))
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid id",
+		})
+		return
+	}
 
 	var updatedTodo models.Todo
 
@@ -72,37 +79,45 @@ func UpdateTodo(c *gin.Context) {
 		return
 	}
 
-	for i, v := range todos {
-		if strconv.Itoa(v.ID) == id {
-			updatedTodo.ID = v.ID
-			todos[i] = updatedTodo
+	todo, err := services.UpdateTodo(id, updatedTodo)
 
-			c.JSON(http.StatusOK, updatedTodo)
-			return
-
-		}
-	}
-
-	c.JSON(http.StatusNotFound, gin.H{
-		"error": "Todo not found",
-	})
-}
-
-func DeleteTodo(c *gin.Context) {
-	id := c.Param("id")
-
-	for i, v := range todos {
-		if strconv.Itoa(v.ID) == id {
-			todos = append(todos[:i], todos[i+1:]...)
-
-			c.JSON(http.StatusOK, gin.H{
-				"message": "Todo deleted",
+	if err != nil {
+		if err == services.ErrDuplicateTitle {
+			c.JSON(http.StatusConflict, gin.H{
+				"error": err.Error(),
 			})
 			return
 		}
+
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": err.Error(),
+		})
+		return
 	}
 
-	c.JSON(http.StatusNotFound, gin.H{
-		"error": "Todo not found",
+	c.JSON(http.StatusOK, todo)
+}
+
+func DeleteTodo(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid id",
+		})
+		return
+	}
+
+	err = services.DeleteTodo(id)
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Todo deleted",
 	})
 }

@@ -5,20 +5,19 @@ import (
 	"strings"
 
 	"gin-todo/models"
+	"gin-todo/repositories"
 )
-
-var todos = []models.Todo{
-	{ID: 1, Title: "Studying Go.", Completed: false},
-}
 
 var ErrTodoNotFound = errors.New("Todo not found")
 var ErrDuplicateTitle = errors.New("Todo title already exists")
 
 func GetTodos() []models.Todo {
-	return todos
+	return repositories.GetAll()
 }
 
 func CreateTodo(todo models.Todo) (models.Todo, error) {
+	todos := repositories.GetAll()
+
 	// タイトル重複チェック。大文字小文字を無視してタイトルが同じか比較する。
 	for _, v := range todos {
 		if strings.EqualFold(v.Title, todo.Title) {
@@ -27,12 +26,13 @@ func CreateTodo(todo models.Todo) (models.Todo, error) {
 	}
 
 	todo.ID = len(todos) + 1
-	todos = append(todos, todo)
 
-	return todo, nil
+	return repositories.Create(todo), nil
 }
 
 func GetTodoByID(id int) (models.Todo, error) {
+	todos := repositories.GetAll()
+
 	for _, v := range todos {
 		if v.ID == id {
 			return v, nil
@@ -43,6 +43,7 @@ func GetTodoByID(id int) (models.Todo, error) {
 }
 
 func UpdateTodo(id int, updatedTodo models.Todo) (models.Todo, error) {
+	todos := repositories.GetAll()
 
 	for i, v := range todos {
 
@@ -59,7 +60,7 @@ func UpdateTodo(id int, updatedTodo models.Todo) (models.Todo, error) {
 			}
 
 			updatedTodo.ID = id
-			todos[i] = updatedTodo
+			repositories.Update(i, updatedTodo)
 
 			return updatedTodo, nil
 		}
@@ -69,9 +70,11 @@ func UpdateTodo(id int, updatedTodo models.Todo) (models.Todo, error) {
 }
 
 func DeleteTodo(id int) error {
+	todos := repositories.GetAll()
+
 	for i, v := range todos {
 		if v.ID == id {
-			todos = append(todos[:i], todos[i+1:]...)
+			repositories.Delete(i)
 			return nil
 		}
 	}

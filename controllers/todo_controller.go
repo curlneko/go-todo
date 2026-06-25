@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	appErr "gin-todo/errors"
 	"gin-todo/models"
 	"gin-todo/services"
 	"gin-todo/utils"
@@ -19,8 +20,7 @@ func GetTodos(c *gin.Context) {
 func CreateTodo(c *gin.Context) {
 	var newTodo models.Todo
 
-	// JSONを構造体に変換。binding タグをチェック。
-	if err := c.ShouldBindJSON(&newTodo); err != nil {
+	if err := bindTodoPayload(c, &newTodo); err != nil {
 		utils.HandleError(c, err)
 		return
 	}
@@ -36,7 +36,7 @@ func CreateTodo(c *gin.Context) {
 }
 
 func GetTodoByID(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := parseTodoID(c)
 
 	if err != nil {
 		utils.HandleError(c, err)
@@ -54,7 +54,7 @@ func GetTodoByID(c *gin.Context) {
 }
 
 func UpdateTodo(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := parseTodoID(c)
 
 	if err != nil {
 		utils.HandleError(c, err)
@@ -63,7 +63,7 @@ func UpdateTodo(c *gin.Context) {
 
 	var updatedTodo models.Todo
 
-	if err := c.ShouldBindJSON(&updatedTodo); err != nil {
+	if err := bindTodoPayload(c, &updatedTodo); err != nil {
 		utils.HandleError(c, err)
 		return
 	}
@@ -79,7 +79,7 @@ func UpdateTodo(c *gin.Context) {
 }
 
 func DeleteTodo(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
+	id, err := parseTodoID(c)
 
 	if err != nil {
 		utils.HandleError(c, err)
@@ -96,4 +96,21 @@ func DeleteTodo(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Todo deleted",
 	})
+}
+
+func parseTodoID(c *gin.Context) (int, error) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return 0, appErr.ErrInvalidID
+	}
+
+	return id, nil
+}
+
+func bindTodoPayload(c *gin.Context, target *models.Todo) error {
+	if err := c.ShouldBindJSON(target); err != nil {
+		return appErr.ErrInvalidRequest
+	}
+
+	return nil
 }
